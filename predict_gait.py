@@ -132,7 +132,7 @@ def inference_track2(opts, args):
     model.eval()
 
     anchor_db_path = 'params/features.pt'
-    assert os.path.exists(anchor_db_path), f"Anchor DB missing: {anchor_db_path}. Please run export_anchors.py first."
+    assert os.path.exists(anchor_db_path), f"Anchor DB missing: {anchor_db_path}."
     
     anchor_db = torch.load(anchor_db_path, map_location='cpu')
     anchor_feats = anchor_db['anchor_feats']
