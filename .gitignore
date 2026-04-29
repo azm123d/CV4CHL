@@ -142,3 +142,4 @@ dmypy.json
 /dataset.tar.bz2
 /.vscode
 /docs
+*.zip
