@@ -14,6 +14,11 @@ Download the preprocessed test data and model from the following URL.
 ```
 https://drive.google.com/drive/folders/1CVfa_Khi0-U7rTnm7YT-1qxtmE4sqgWh?usp=drive_link
 ```
+Due to network issues, the upload speed to Google Drive is slow. If you cannot find dataset.zip and checkpoint.zip in Google Drive, you can download it via the following link:
+```
+https://pan.baidu.com/s/14QVdqMdGCxFBPnLroiBZeQ?pwd=4ff9
+```
+
 Unzip dataset.zip and checkpoint.zip and place them in the root directory of your workspace. The folder structure should be:
 ```
 CV4CHL/
