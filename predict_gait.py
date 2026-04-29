@@ -185,7 +185,7 @@ def inference_track2(opts, args):
             for side in range(2): 
                 side_feats = all_feats[:, side, :] 
                 
-                dist = F.cosine_similarity(side_feats.unsqueeze(1), anchor_feats.unsqueeze(0), dim=-1) # (N_splits, M)
+                dist = F.cosine_similarity(side_feats.unsqueeze(1), anchor_feats.unsqueeze(0), dim=-1) 
                 nearest_anchor_idx = torch.argmax(dist, dim=1) 
                 side_preds = anchor_labels[nearest_anchor_idx]
                 
@@ -207,11 +207,11 @@ def inference_track2(opts, args):
             all_predictions[p] = np.array([pred_left, pred_right])
             
         else:
-            avg_feat = all_feats.mean(dim=0)    # (2, D)
+            avg_feat = all_feats.mean(dim=0)  
             avg_feat = F.normalize(avg_feat, dim=-1)
             
-            dist_left = F.cosine_similarity(avg_feat[0:1], anchor_feats, dim=-1) # (M,)
-            dist_right = F.cosine_similarity(avg_feat[1:2], anchor_feats, dim=-1) # (M,)
+            dist_left = F.cosine_similarity(avg_feat[0:1], anchor_feats, dim=-1) 
+            dist_right = F.cosine_similarity(avg_feat[1:2], anchor_feats, dim=-1)
             
             max_dist_left, max_idx_left = torch.max(dist_left, dim=0)
             max_dist_right, max_idx_right = torch.max(dist_right, dim=0)
