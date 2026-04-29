@@ -1,0 +1,40 @@
+# General  
+finetune: True
+partial_train: ['pos_embed']
+
+# Traning   
+fit_epochs: 6         # 5
+epochs: 60            # 50
+batch_size: 16
+lr_backbone: 2.0e-4
+lr_head: 0.001
+weight_decay: 0.1
+# lr_decay: 0.99
+
+# Model
+# model_version: class
+maxlen: 120
+dim_feat: 512
+mlp_ratio: 2
+depth: 5
+dim_rep: 512
+num_heads: 8
+att_fuse: True
+num_joints: 18
+num_DST_joints: 18      # MotionBERT原始输入是17
+hidden_dim: 2048
+dropout_ratio: 0.5
+
+# Data
+# dataset: ntu60_hrnet
+# data_split: xsub
+# clip_len: 243
+view: 'all'          # choose from ['left', 'right', 'forward', 'backward'], and 'all' means using all views
+EVGS_classes: 17
+
+# Augmentation
+flip: True
+swap_leg: True
+random_move: False
+scale_range_train: [1.0, 1.0]     
+scale_range_test: [1.0, 1.0]
