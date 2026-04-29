@@ -22,12 +22,10 @@ from lib.utils.learning import *
 from lib.model.loss import *
 from lib.data.dataset_gait import GaitDataset_1, GaitDataset_2
 from lib.model.model_gait import GaitNet_1, GaitNet_2
-import numpy as np
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Gait Recognition')
-    # parser.add_argument('--track', type=int, required=True, help='choose track 1 or track 2 to predict')
     parser.add_argument('--model_1', type=str, default=None, help='path to the trained track 1 model')
     parser.add_argument('--model_2', type=str, default=None, help='path to the trained track 2 model')
     parser.add_argument('--test_dir', type=str, default='dataset', help='path to the output csv file')
@@ -38,7 +36,7 @@ def parse_args():
 
 
 def inference_track1(opts, args):
-    print("load model from {opts.model_1}")
+    print(f"load model from {opts.model_1}")
     assert os.path.isfile(opts.model_1), "Model file does not exist."
     assert 'gait1' in opts.model_1, "Model path should contain 'gait1' for track 1."
 
@@ -66,14 +64,14 @@ def inference_track1(opts, args):
     for p in tqdm(test_set, desc='Inference on Track 1'):
         data_path = os.path.join(opts.test_dir, f'test_track1_{p}.pkl')
         test_dataset = GaitDataset_1(
-        dataset_path=data_path,
-        split='test',
-        batch_frames=args.maxlen,
-        flip=False,
-        swap_leg=False,
-        random_move=False,
-        scale_range=args.scale_range_test,
-    )
+            dataset_path=data_path,
+            split='test',
+            batch_frames=args.maxlen,
+            flip=False,
+            swap_leg=False,
+            random_move=False,
+            scale_range=args.scale_range_test,
+        )
         test_loader = DataLoader(test_dataset, **testloader_params)
 
         probs = []
@@ -83,7 +81,6 @@ def inference_track1(opts, args):
                     batch_kp = batch_data[0]
                 else:
                     batch_kp = batch_data
-                # print(f"Processing batch {idx+1}/{len(test_loader)} with size {len(batch_kp)}")
                 if torch.cuda.is_available():
                     batch_kp = batch_kp.cuda()
                 
@@ -104,7 +101,7 @@ def inference_track1(opts, args):
             pred_labels[votes > N / 2.0] = 1
             pred_labels[votes < N / 2.0] = 0
             
-            # 如果票数相同（平局），用平均概率判定
+            # 如果票数相同，用平均概率判定
             if N % 2 == 0:
                 tie_mask = (votes == N // 2)
                 mean_probs = all_probs.mean(dim=0)
@@ -134,28 +131,16 @@ def inference_track2(opts, args):
         model = model.cuda()
     model.eval()
 
-    train_data_path = 'dataset/train_dataset_track2_all.pkl'
-        
-    anchor_dataset = GaitDataset_2(
-        dataset_path=train_data_path, split='val', view=args.view,
-        batch_frames=args.maxlen, flip=False, swap_leg=False,
-        random_move=False, scale_range=args.scale_range_test
-    )
-    anchor_loader = DataLoader(anchor_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8)
+    anchor_db_path = 'params/features.pt'
+    assert os.path.exists(anchor_db_path), f"Anchor DB missing: {anchor_db_path}. Please run export_anchors.py first."
     
-    anchor_feats, anchor_labels = [], []
-    with torch.no_grad():
-        for batch_kp, batch_gt in anchor_loader:
-            if torch.cuda.is_available(): batch_kp = batch_kp.cuda()
-            feat = model(batch_kp)   
-            B, L, D = feat.shape
-            feat = feat.reshape(B * 2, D).cpu()
-            batch_gt = batch_gt.reshape(B * 2).cpu()
-            anchor_feats.append(feat)
-            anchor_labels.append(batch_gt)
-            
-    anchor_feats = torch.cat(anchor_feats) 
-    anchor_labels = torch.cat(anchor_labels) 
+    anchor_db = torch.load(anchor_db_path, map_location='cpu')
+    anchor_feats = anchor_db['anchor_feats']
+    anchor_labels = anchor_db['anchor_labels']
+
+    if torch.cuda.is_available():
+        anchor_feats = anchor_feats.cuda()
+        anchor_labels = anchor_labels.cuda()
 
     test_set = [4, 6, 7, 13, 26, 35, 39, 42, 50]
     testloader_params = {
@@ -190,37 +175,56 @@ def inference_track2(opts, args):
                 
                 feat = model(batch_kp)  
                 test_split_feats.append(feat.cpu())  
-
         all_feats = torch.cat(test_split_feats, dim=0)  
+        if torch.cuda.is_available():
+            all_feats = all_feats.cuda()
 
         if opts.vote:
             pred_labels_list = []
+            max_dist_vals = []
             for side in range(2): 
                 side_feats = all_feats[:, side, :] 
                 
                 dist = F.cosine_similarity(side_feats.unsqueeze(1), anchor_feats.unsqueeze(0), dim=-1) # (N_splits, M)
-                
                 nearest_anchor_idx = torch.argmax(dist, dim=1) 
                 side_preds = anchor_labels[nearest_anchor_idx]
                 
-                # 开始投票找出最多的标签
                 counts = torch.bincount(side_preds, minlength=5) 
                 final_label = torch.argmax(counts).item()
+                max_score = dist[:, anchor_labels == final_label].mean().item()
+
                 pred_labels_list.append(final_label)
-                
-            pred_labels = np.array(pred_labels_list)
-            all_predictions[p] = pred_labels
+                max_dist_vals.append(max_score)
+
+            pred_left, pred_right = pred_labels_list[0], pred_labels_list[1]
+
+            if pred_left != pred_right:
+                if max_dist_vals[0] > max_dist_vals[1]:
+                    pred_right = pred_left
+                else:
+                    pred_left = pred_right
+
+            all_predictions[p] = np.array([pred_left, pred_right])
+            
         else:
-            # 不投票形式：先把该视频的所有切片特征平均聚合，然后再去找最近的一个Anchor
             avg_feat = all_feats.mean(dim=0)    # (2, D)
             avg_feat = F.normalize(avg_feat, dim=-1)
             
             dist_left = F.cosine_similarity(avg_feat[0:1], anchor_feats, dim=-1) # (M,)
             dist_right = F.cosine_similarity(avg_feat[1:2], anchor_feats, dim=-1) # (M,)
             
-            pred_left = anchor_labels[torch.argmax(dist_left)].item()
-            pred_right = anchor_labels[torch.argmax(dist_right)].item()
+            max_dist_left, max_idx_left = torch.max(dist_left, dim=0)
+            max_dist_right, max_idx_right = torch.max(dist_right, dim=0)
             
+            pred_left = anchor_labels[max_idx_left].item()
+            pred_right = anchor_labels[max_idx_right].item()
+            
+            if pred_left != pred_right:
+                if max_dist_left > max_dist_right:
+                    pred_right = pred_left
+                else:
+                    pred_left = pred_right
+                    
             all_predictions[p] = np.array([pred_left, pred_right])
 
     return all_predictions
