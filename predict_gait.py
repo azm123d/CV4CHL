@@ -134,6 +134,7 @@ def inference_track2(opts, args):
     anchor_db_path = 'params/features.pt'
     assert os.path.exists(anchor_db_path), f"Anchor DB missing: {anchor_db_path}."
     
+    # 从数据集中预处理得到的特征和标签,用于最近邻分类
     anchor_db = torch.load(anchor_db_path, map_location='cpu')
     anchor_feats = anchor_db['anchor_feats']
     anchor_labels = anchor_db['anchor_labels']
@@ -198,11 +199,12 @@ def inference_track2(opts, args):
 
             pred_left, pred_right = pred_labels_list[0], pred_labels_list[1]
 
-            if pred_left != pred_right:
-                if max_dist_vals[0] > max_dist_vals[1]:
-                    pred_right = pred_left
-                else:
-                    pred_left = pred_right
+            # if pred_left != pred_right:
+            #     # max_dist_vals表示余弦相似度,越大表示预测的特征与真实的某一类别的特征之间越相似,判定为这一类别的置信度越高
+            #     if max_dist_vals[0] > max_dist_vals[1]:
+            #         pred_right = pred_left
+            #     else:
+            #         pred_left = pred_right
 
             all_predictions[p] = np.array([pred_left, pred_right])
             
@@ -219,11 +221,11 @@ def inference_track2(opts, args):
             pred_left = anchor_labels[max_idx_left].item()
             pred_right = anchor_labels[max_idx_right].item()
             
-            if pred_left != pred_right:
-                if max_dist_left > max_dist_right:
-                    pred_right = pred_left
-                else:
-                    pred_left = pred_right
+            # if pred_left != pred_right:
+            #     if max_dist_left > max_dist_right:
+            #         pred_right = pred_left
+            #     else:
+            #         pred_left = pred_right
                     
             all_predictions[p] = np.array([pred_left, pred_right])
 
