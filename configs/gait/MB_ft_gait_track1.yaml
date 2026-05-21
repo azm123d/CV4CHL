@@ -1,6 +1,6 @@
 # General  
 finetune: True
-partial_train: ['pos_embed']
+partial_train: ['pos_embed', 'joints_embed']
 
 # Traning   
 fit_epochs: 6         # 5

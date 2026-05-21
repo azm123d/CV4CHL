@@ -92,7 +92,7 @@ def train_split_data(args, opts):
             chk_filename = os.path.join(opts.pretrained, opts.selection)
             print('Loading backbone', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)['model_pos']
-            model_backbone = load_pretrained_weights(model_backbone, checkpoint)
+            model_backbone = load_pretrained_weights(model_backbone, checkpoint, skip_list=args.partial_train)
     if args.partial_train:
         model_backbone = partial_train_layers(model_backbone, args.partial_train)
 
@@ -174,7 +174,7 @@ def train_split_data(args, opts):
             backbone_pretrained_params = []
             backbone_scratch_params = [] 
             for name, param in model.backbone.named_parameters():
-                if name == 'pos_embed':
+                if any(keyword in name for keyword in args.partial_train):
                     backbone_scratch_params.append(param)
                 else:
                     backbone_pretrained_params.append(param)
@@ -316,7 +316,7 @@ def train_all_data(args, opts):
             chk_filename = os.path.join(opts.pretrained, opts.selection)
             print('Loading backbone', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)['model_pos']
-            model_backbone = load_pretrained_weights(model_backbone, checkpoint)
+            model_backbone = load_pretrained_weights(model_backbone, checkpoint, skip_list=args.partial_train)
     if args.partial_train:
         model_backbone = partial_train_layers(model_backbone, args.partial_train)
 
@@ -377,7 +377,7 @@ def train_all_data(args, opts):
             backbone_pretrained_params = []
             backbone_scratch_params = [] 
             for name, param in model.backbone.named_parameters():
-                if name == 'pos_embed':
+                if any(keyword in name for keyword in args.partial_train):
                     backbone_scratch_params.append(param)
                 else:
                     backbone_pretrained_params.append(param)

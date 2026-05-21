@@ -36,7 +36,7 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
-def load_pretrained_weights(model, checkpoint):
+def load_pretrained_weights(model, checkpoint, skip_list=[]):
     """Load pretrianed weights to model
     Incompatible layers (unmatched in name or size) will be ignored
     Args:
@@ -64,11 +64,15 @@ def load_pretrained_weights(model, checkpoint):
                 v = v[:, :target_len, :, :]
 
         if k in model_dict and model_dict[k].size() == v.size():
+            if any(skip_name in k for skip_name in skip_list):
+                print(f"INFO: Skip loading layer {k} to train from scratch.")
+                continue
             # print(f"Loading pretrained weight for layer: {k}")
             new_state_dict[k] = v
             matched_layers.append(k)
         else:
             discarded_layers.append(k)
+            print(f"INFO: Discarding pretrained weight for layer: {k} (size mismatch or not found in model)")
     model_dict.update(new_state_dict)
     model.load_state_dict(model_dict, strict=True)
     print('INFO: load_weight', len(matched_layers))

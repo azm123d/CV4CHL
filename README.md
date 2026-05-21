@@ -49,3 +49,9 @@ CUDA_VISIBLE_DEVICES=0 python predict_gait.py --model_1 checkpoint/gait1/best.pt
 
 ## Contact Me
 If you have any questions, please contact email: hyt2025110753@bupt.edu.cn
+
+## Train
+```
+# track 1
+CUDA_VISIBLE_DEVICES=1 nohup python -u train_gait_1.py > train_track1.log 2>&1 &
+```
