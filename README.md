@@ -45,6 +45,9 @@ CV4CHL/
 ## Inference：
 ```
 CUDA_VISIBLE_DEVICES=0 python predict_gait.py --model_1 checkpoint/gait1/best.pth --model_2 checkpoint/gait2/best.pth --vote
+
+# track2 ML
+python traditional_ml_track2/infer_track2_traditional.py
 ```
 
 ## Contact Me
@@ -54,4 +57,7 @@ If you have any questions, please contact email: hyt2025110753@bupt.edu.cn
 ```
 # track 1
 CUDA_VISIBLE_DEVICES=1 nohup python -u train_gait_1.py > train_track1.log 2>&1 &
+
+# track2 ML
+python traditional_ml_track2/infer_track2_traditional.py
 ```
